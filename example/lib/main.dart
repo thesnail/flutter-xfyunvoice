@@ -33,10 +33,14 @@ class _MyAppState extends State<MyApp> {
 
             FlatButton(
               child: Text('文字转语音'),
-              onPressed: (){
+              onPressed: () async{
                 XfyunVoice.startSpeaking(msg:'文字转语音,文字转语音,文字转语音,文字转语音,文字转语音,文字转语音,文字转语音,文字转语音').then((val){
                   print('启动语音识别:$val');
                 });
+
+                bool isSpeaking =  await XfyunVoice.isSpeaking;
+
+                print('=====>isSpeaking:${isSpeaking?'正在播放':'未播放'}');
               },
             ),
           ],

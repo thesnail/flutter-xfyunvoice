@@ -62,6 +62,26 @@
       [_speechSynthesizer setDelegate:self];
       [_speechSynthesizer startSpeaking: msg];
       result(@(YES));
+  }else if([@"isSpeaking" isEqualToString:call.method]){
+      if(_speechSynthesizer == nil){
+          result(@(NO));
+      }else{
+          result(@([_speechSynthesizer isSpeaking]));
+      }
+  }else if([@"pauseSpeaking" isEqualToString:call.method]){
+      if(_speechSynthesizer != nil){
+          [_speechSynthesizer pauseSpeaking];
+      }
+  }else if([@"resumeSpeaking" isEqualToString:call.method]){
+      if(_speechSynthesizer != nil){
+          [_speechSynthesizer resumeSpeaking];
+      }
+  }else if([@"destroy" isEqualToString:call.method]){
+      if(_speechSynthesizer == nil){
+          result(@(NO));
+      }else{
+          result(@([IFlySpeechSynthesizer destroy]));
+      }
   }else {
     result(FlutterMethodNotImplemented);
   }
