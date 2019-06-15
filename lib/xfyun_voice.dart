@@ -3,10 +3,18 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+
+typedef ValueCallback = void Function(String method,dynamic args);
+
 class XfyunVoice {
   static const MethodChannel _channel = const MethodChannel('xfyunvoice');
 
-  
+  static void onValueCallback(ValueCallback callback){
+    _channel.setMethodCallHandler((MethodCall call){
+      callback(call.method,call.arguments);
+    });
+  }
+
   /// @args args 启动参数，必须保证appid参数传入，示例：appid=123456
   /// usr: 科大讯飞开发者在云平台上注册的账号。
   /// pwd: 科大讯飞账号对应的密码，与账号同时存在。
@@ -37,6 +45,11 @@ class XfyunVoice {
     return b;
   }
 
+  /// 取消本次会话
+  static void cancel() async{
+    await _channel.invokeMethod('cancel');
+  }
+
   /// 销毁合成对象。
   /// @return 成功返回true,失败返回false
   static Future<bool> destroy() async{
@@ -50,7 +63,7 @@ class XfyunVoice {
     await _channel.invokeMethod('pauseSpeaking');
   }
 
-  
+
   /// 恢复播放
   static void resumeSpeaking() async{
     await _channel.invokeMethod('resumeSpeaking');

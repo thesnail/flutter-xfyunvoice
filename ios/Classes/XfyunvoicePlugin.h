@@ -7,4 +7,5 @@
 
 @property (nonatomic, strong) IFlySpeechSynthesizer *speechSynthesizer;
 
+@property (nonatomic, strong) FlutterMethodChannel *channelMethod;
 @end

@@ -12,37 +12,51 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+
+  @override
+  void initState() { 
+    super.initState();
+    XfyunVoice.onValueCallback((method,args){
+      if(method == 'onBeginOfSpeech'){
+        print('Flutter ====> onBeginOfSpeech');
+      }else if(method == 'onVolumeChanged') {
+        //print('Flutter ====> onVolumeChanged   $args');
+      }else if(method == 'onResults') {
+        print('Flutter ====> onResults   $args');
+      }else if(method == 'onEndOfSpeech') {
+        print('Flutter ====> onEndOfSpeech   $args');
+      }else if(method == 'onCancel') {
+        print('Flutter ====> onCancel');
+      }else if(method == 'onCompleted') {
+        print('Flutter ====> onCompleted   $args');
+      }
+    });
+  }
+
+  @override
+  void dispose() { 
+    super.dispose();
+    XfyunVoice.cancel();
+    XfyunVoice.destroy();
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
-          title: const Text('Plugin example app'),
+          title: const Text('语音识别与转换'),
         ),
-        body: Column(
+        body: Stack(
           children: <Widget>[
 
-            FlatButton(
-              child: Text('开始语音识别'),
-              onPressed: (){
-                XfyunVoice.startListening().then((val){
-                  print('启动语音识别:$val');
-                });
-              },
-            ),
+            
 
-            FlatButton(
-              child: Text('文字转语音'),
-              onPressed: () async{
-                XfyunVoice.startSpeaking(msg:'文字转语音,文字转语音,文字转语音,文字转语音,文字转语音,文字转语音,文字转语音,文字转语音').then((val){
-                  print('启动语音识别:$val');
-                });
-
-                bool isSpeaking =  await XfyunVoice.isSpeaking;
-
-                print('=====>isSpeaking:${isSpeaking?'正在播放':'未播放'}');
-              },
-            ),
+            Container(
+              margin: EdgeInsets.only(bottom: 20),
+              alignment: Alignment.bottomCenter,
+              child: Text('语音识别结果',style: TextStyle(color: Colors.blue),)
+            )
           ],
         ),
       ),

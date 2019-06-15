@@ -4,14 +4,16 @@
     NSString *_result; // 记录语音识别返回的结果
 }
 
+
 @end
 
 @implementation XfyunvoicePlugin
 
 + (void)registerWithRegistrar:(NSObject<FlutterPluginRegistrar>*)registrar {
-  FlutterMethodChannel* channel = [FlutterMethodChannel methodChannelWithName:@"xfyunvoice" binaryMessenger:[registrar messenger]];
-  XfyunvoicePlugin* instance = [[XfyunvoicePlugin alloc] init];
-  [registrar addMethodCallDelegate:instance channel:channel];
+    FlutterMethodChannel *channel = [FlutterMethodChannel methodChannelWithName:@"xfyunvoice" binaryMessenger:[registrar messenger]];
+    XfyunvoicePlugin* instance = [[XfyunvoicePlugin alloc] init];
+    [instance setChannelMethod:channel];
+    [registrar addMethodCallDelegate:instance channel:channel];
 }
 
 - (void)handleMethodCall:(FlutterMethodCall*)call result:(FlutterResult)result {
@@ -33,16 +35,13 @@
           [self initRecognizer];
       }
       [_speechRecognizer cancel];
-      
+      if(_speechSynthesizer != nil){
+          [_speechSynthesizer stopSpeaking];
+      }
       [_speechRecognizer setParameter:IFLY_AUDIO_SOURCE_MIC forKey:@"audio_source"];
       [_speechRecognizer setParameter:@"json" forKey:[IFlySpeechConstant RESULT_TYPE]];
       [_speechRecognizer setParameter:@"asr.pcm" forKey:[IFlySpeechConstant ASR_AUDIO_PATH]];
       [_speechRecognizer setDelegate:self];
-      if(_speechSynthesizer != nil){
-          [_speechSynthesizer stopSpeaking];
-      }
-      [_speechRecognizer cancel];
-      
       BOOL ret = [_speechRecognizer startListening];
       result(@(ret));
   }else if([@"stopListening" isEqualToString:call.method]){
@@ -126,12 +125,15 @@
 
 
 - (void)onCompleted:(IFlySpeechError *)error{
-    NSLog(@"======>onCompleted     errorCode:%d",[error errorCode]);
-    NSLog(@"======>onCompleted     errorDesc:%@",[error errorDesc]);
-    NSLog(@"======>onCompleted     errorType:%d",[error errorType]);
-    
     if(self.speechRecognizer != nil){
         [self.speechRecognizer cancel];
+    }
+    if(_channelMethod != nil){
+        NSDictionary *data = @{
+                               @"code":@(error.errorCode),
+                               @"desc":error.errorDesc,
+                               @"type":@(error.errorType)};
+        [_channelMethod invokeMethod:@"onCompleted" arguments:data];
     }
 }
 
@@ -146,10 +148,9 @@
         _result = @"";
     }
     _result = [NSString stringWithFormat:@"%@%@",_result,resultFromJson];
-    if (islast){
-        NSLog(@"======>语音识别结束onResults:%@",_result);
-    }else{
-        NSLog(@"======>语音识别onResults:%@",_result);
+    
+    if(_channelMethod != nil){
+        [_channelMethod invokeMethod:@"onResults" arguments:@{@"result":_result,@"islast":@(islast)}];
     }
 }
 
@@ -176,20 +177,28 @@
 }
 
 - (void)onVolumeChanged:(int)volume{
-    //NSLog(@"======>onVolumeChanged  %d",volume);
+    if(_channelMethod != nil){
+        [_channelMethod invokeMethod:@"onVolumeChanged" arguments:@{@"volume":@(volume)}];
+    }
 }
 
 - (void)onBeginOfSpeech{
-    NSLog(@"======>开始语音识别onBeginOfSpeech  ");
+    if(_channelMethod != nil){
+        [_channelMethod invokeMethod:@"onBeginOfSpeech" arguments:@{}];
+    }
 }
 
 - (void) onEndOfSpeech{
-    NSLog(@"======>语音识别结束onEndOfSpeech:%@",_result);
+    if(_channelMethod != nil){
+        [_channelMethod invokeMethod:@"onEndOfSpeech" arguments:@{@"result":_result}];
+    }
 }
 
 - (void)onCancel{
     _result = @"";
-    NSLog(@"======>语音识别结束->onCancel  ");
+    if(_channelMethod != nil){
+        [_channelMethod invokeMethod:@"onCancel" arguments:@{}];
+    }
 }
 
 @end
