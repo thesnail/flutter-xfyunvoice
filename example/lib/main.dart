@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:xfyunvoice/xfyun_voice.dart';
+import 'package:xfyunvoice/xfyunvoice.dart';
+import 'ripple.dart';
 
 void main() async {
   await XfyunVoice.setAppId('appid=5d03b089');
@@ -50,8 +51,18 @@ class _MyAppState extends State<MyApp> {
         body: Stack(
           children: <Widget>[
 
-            
+            Container(
+              alignment: Alignment.center,
+              child: FlatButton(
+                child: Text('开始语音'),
+                onPressed: (){
+                  XfyunVoice.startListening().then((val){});
+                },
+              ),
+            ),
 
+            // 接收语音指令中
+            // 执行语音指令中
             Container(
               margin: EdgeInsets.only(bottom: 20),
               alignment: Alignment.bottomCenter,
