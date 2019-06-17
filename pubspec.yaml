@@ -1,8 +1,8 @@
 name: xfyunvoice
-description: A new flutter plugin project.
-version: 0.0.1
-author:
-homepage:
+description: Flutter科大讯飞语音识别插件和转换插件
+version: 0.1.8
+author: Scott Wang <my_snail@126.com>
+homepage: http://scott-cry.win/
 
 environment:
   sdk: ">=2.1.0 <3.0.0"

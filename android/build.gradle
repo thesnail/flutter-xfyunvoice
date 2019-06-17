@@ -31,4 +31,15 @@ android {
     lintOptions {
         disable 'InvalidPackage'
     }
+
+    sourceSets {
+        main {
+            jniLibs.srcDirs = ['libs']
+        }
+    }
+}
+
+dependencies {
+    implementation files('libs/Sunflower.jar')
+    implementation files('libs/Msc.jar')
 }

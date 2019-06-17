@@ -128,7 +128,7 @@
     if(self.speechRecognizer != nil){
         [self.speechRecognizer cancel];
     }
-    if(_channelMethod != nil){
+    if(_channelMethod != nil && error != nil){
         NSDictionary *data = @{
                                @"code":@(error.errorCode),
                                @"desc":error.errorDesc,
@@ -144,13 +144,10 @@
         [resultString appendFormat:@"%@",key];
     }
     NSString * resultFromJson = [self stringFromJson:resultString];
-    if (_result == nil) {
-        _result = @"";
-    }
     _result = [NSString stringWithFormat:@"%@%@",_result,resultFromJson];
     
     if(_channelMethod != nil){
-        [_channelMethod invokeMethod:@"onResults" arguments:@{@"result":_result,@"islast":@(islast)}];
+        [_channelMethod invokeMethod:@"onResults" arguments:@{@"result":_result,@"isLast":@(islast)}];
     }
 }
 
@@ -183,6 +180,7 @@
 }
 
 - (void)onBeginOfSpeech{
+    _result = @"";
     if(_channelMethod != nil){
         [_channelMethod invokeMethod:@"onBeginOfSpeech" arguments:@{}];
     }
@@ -195,7 +193,6 @@
 }
 
 - (void)onCancel{
-    _result = @"";
     if(_channelMethod != nil){
         [_channelMethod invokeMethod:@"onCancel" arguments:@{}];
     }

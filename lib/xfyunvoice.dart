@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-
 typedef ValueCallback = void Function(String method,dynamic args);
 
 class XfyunVoice {
