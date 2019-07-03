@@ -30,20 +30,31 @@
       }else{
           result(@NO);
       }
+  }else if([@"requestPermission" isEqualToString: call.method]){
+      NSURL *url = [NSURL URLWithString:UIApplicationOpenSettingsURLString];
+      if( [[UIApplication sharedApplication]canOpenURL:url] ) {
+          [[UIApplication sharedApplication]openURL:url];
+      }
   }else if([@"startListening" isEqualToString:call.method]){
-      if (self.speechRecognizer == nil) {
-          [self initRecognizer];
+      AVAuthorizationStatus authStatus = [AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeAudio];
+      if(authStatus == AVAuthorizationStatusRestricted || authStatus == AVAuthorizationStatusDenied) {
+          result(@{@"ret":@NO,@"msg":@"App未获得录音权限",@"code":@(-1)});
+      }else{
+          if (self.speechRecognizer == nil) {
+              [self initRecognizer];
+          }
+          [_speechRecognizer cancel];
+          if(_speechSynthesizer != nil){
+              [_speechSynthesizer stopSpeaking];
+          }
+          [_speechRecognizer setParameter:IFLY_AUDIO_SOURCE_MIC forKey:@"audio_source"];
+          [_speechRecognizer setParameter:@"json" forKey:[IFlySpeechConstant RESULT_TYPE]];
+          [_speechRecognizer setParameter:@"asr.pcm" forKey:[IFlySpeechConstant ASR_AUDIO_PATH]];
+          [_speechRecognizer setDelegate:self];
+          BOOL ret = [_speechRecognizer startListening];
+          
+          result(@{@"ret":@(ret),@"msg":@"正在语音识别中",@"code":@0});
       }
-      [_speechRecognizer cancel];
-      if(_speechSynthesizer != nil){
-          [_speechSynthesizer stopSpeaking];
-      }
-      [_speechRecognizer setParameter:IFLY_AUDIO_SOURCE_MIC forKey:@"audio_source"];
-      [_speechRecognizer setParameter:@"json" forKey:[IFlySpeechConstant RESULT_TYPE]];
-      [_speechRecognizer setParameter:@"asr.pcm" forKey:[IFlySpeechConstant ASR_AUDIO_PATH]];
-      [_speechRecognizer setDelegate:self];
-      BOOL ret = [_speechRecognizer startListening];
-      result(@(ret));
   }else if([@"stopListening" isEqualToString:call.method]){
       if(_speechRecognizer != nil){
           [self.speechRecognizer stopListening];

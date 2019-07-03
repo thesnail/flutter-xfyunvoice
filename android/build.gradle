@@ -25,8 +25,10 @@ android {
     compileSdkVersion 28
 
     defaultConfig {
-        minSdkVersion 16
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+        minSdkVersion 20
+        ndk {
+            abiFilters "armeabi-v7a"
+        }
     }
     lintOptions {
         disable 'InvalidPackage'
@@ -34,7 +36,16 @@ android {
 
     sourceSets {
         main {
-            jniLibs.srcDirs = ['libs']
+        }
+    }
+
+    allprojects {
+        repositories {
+            maven{
+                url 'http://libmsc.xfyun.cn/repository/maven-releases/'
+            }
+            jcenter()
+            mavenCentral()
         }
     }
 }
@@ -42,4 +53,6 @@ android {
 dependencies {
     implementation files('libs/Sunflower.jar')
     implementation files('libs/Msc.jar')
+    implementation 'androidx.annotation:annotation:1.0.2'
+    implementation 'androidx.core:core:1.0.1'
 }

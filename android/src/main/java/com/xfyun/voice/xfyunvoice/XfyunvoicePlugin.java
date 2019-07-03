@@ -2,10 +2,13 @@ package com.xfyun.voice.xfyunvoice;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
 import com.iflytek.cloud.InitListener;
 import com.iflytek.cloud.RecognizerListener;
 import com.iflytek.cloud.RecognizerResult;
@@ -16,7 +19,10 @@ import com.iflytek.cloud.SpeechSynthesizer;
 import com.iflytek.cloud.SpeechUtility;
 import com.iflytek.cloud.SynthesizerListener;
 
+import org.json.JSONObject;
+
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import io.flutter.plugin.common.MethodCall;
@@ -25,8 +31,9 @@ import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
 import io.flutter.plugin.common.PluginRegistry.Registrar;
 
+
 /** XfyunvoicePlugin */
-public class XfyunvoicePlugin implements MethodCallHandler,RecognizerListener,SynthesizerListener {
+public class XfyunvoicePlugin implements MethodCallHandler {
 
   public final static String TAG = XfyunvoicePlugin.class.getName();
 
@@ -66,7 +73,7 @@ public class XfyunvoicePlugin implements MethodCallHandler,RecognizerListener,Sy
   InitListener initListener = new InitListener() {
     @Override
     public void onInit(int i) {
-
+      Log.e(TAG,"initListener ======>onInit  i:"+i);
     }
   };
 
@@ -83,30 +90,174 @@ public class XfyunvoicePlugin implements MethodCallHandler,RecognizerListener,Sy
     synthesizer.setParameter(SpeechConstant.TEXT_ENCODING,"unicode");
     synthesizer.setParameter(SpeechConstant.ENGINE_TYPE,"cloud");
   }
+  SynthesizerListener syListener = new SynthesizerListener() {
+    @Override
+    public void onSpeakBegin() {
+      _result = "";
+      if(channel != null){
+        Map<String,Object> data = new HashMap<>();
+        channel.invokeMethod("onBeginOfSpeech",data);
+      }
+    }
 
+    @Override
+    public void onBufferProgress(int i, int i1, int i2, String s) {
 
+    }
 
+    @Override
+    public void onSpeakPaused() {
+    }
+
+    @Override
+    public void onSpeakResumed() {
+    }
+
+    @Override
+    public void onSpeakProgress(int i, int i1, int i2) {
+
+    }
+
+    @Override
+    public void onCompleted(SpeechError error) {
+      if(channel != null){
+        Map<String,Object> data = new HashMap();
+        if(error != null){
+          data.put("code",error.getErrorCode());
+          data.put("desc",error.getErrorDescription());
+        }
+        data.put("type",0);
+        channel.invokeMethod("onCompleted",data);
+      }
+    }
+
+    @Override
+    public void onEvent(int i, int i1, int i2, Bundle bundle) {
+
+    }
+  };
+
+  RecognizerListener reListener = new RecognizerListener() {
+    @Override
+    public void onVolumeChanged(int i, byte[] bytes) {
+      if(channel != null){
+        Map<String,Integer> data = new HashMap<>();
+        data.put("volume",i);
+        channel.invokeMethod("onVolumeChanged",data);
+      }
+    }
+
+    @Override
+    public void onBeginOfSpeech() {
+      if(channel != null){
+        Map<String,Integer> data = new HashMap<>();
+        channel.invokeMethod("onBeginOfSpeech",data);
+      }
+    }
+
+    @Override
+    public void onEndOfSpeech() {
+      if(channel != null){ }
+    }
+
+    private HashMap<String, String> mIatResults = new LinkedHashMap<>();
+
+    @Override
+    public void onResult(RecognizerResult result, boolean b) {
+      String text = JsonParser.parseIatResult(result.getResultString());
+      String sn = null;
+      try {
+        JSONObject resultJson = new JSONObject(result.getResultString());
+        sn = resultJson.optString("sn");
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+      mIatResults.put(sn, text);
+      StringBuilder resBuffer = new StringBuilder();
+      for (String key : mIatResults.keySet()) {
+        resBuffer.append(mIatResults.get(key));
+      }
+      _result = resBuffer.toString();
+      if(channel != null){
+        Map<String,Object> data = new HashMap<>();
+        data.put("result",_result);
+        data.put("isLast",b);
+        channel.invokeMethod("onResults",data);
+        if(b){
+          Map<String,String> map = new HashMap<>();
+          map.put("result",_result);
+          channel.invokeMethod("onEndOfSpeech",map);
+        }
+      }
+    }
+
+    @Override
+    public void onError(SpeechError error) {
+      if(channel != null){
+        Map<String,Object> data = new HashMap<>();
+        if(error != null){
+          data.put("code",error.getErrorCode());
+          data.put("desc",error.getErrorDescription());
+        }
+        data.put("type",0);
+        channel.invokeMethod("onError",data);
+      }
+    }
+    @Override
+    public void onEvent(int i, int i1, int i2, Bundle bundle) {}
+  };
+
+  private void startListening(Result result){
+    if(synthesizer != null){
+      synthesizer.stopSpeaking();
+    }
+    if(recognizer == null){
+      initRecognizer();
+    }else{
+      recognizer.cancel();
+    }
+    recognizer.setParameter("audio_source","1");
+    recognizer.setParameter(SpeechConstant.RESULT_TYPE,"json");
+    recognizer.setParameter(SpeechConstant.ASR_AUDIO_PATH,"asr.pcm");
+    int ret = recognizer.startListening(reListener);
+    Map<String,Object> data = new LinkedHashMap<>();
+    data.put("ret",ret);
+    data.put("msg","正在语音识别中");
+    data.put("code",0);
+    result.success(data);
+  }
 
   @Override
   public void onMethodCall(MethodCall call, Result result) {
     if("setAppId".equals(call.method)){
-      String data = call.argument("args");
-      SpeechUtility.createUtility(activity,data);
-      result.success(true);
+      try {
+        String data = call.argument("args");
+        SpeechUtility.createUtility(activity,data);
+        result.success(true);
+      } catch (Exception e) {
+        e.printStackTrace();
+        result.success(false);
+      }
+    }else if("requestPermission".equals(call.method)){
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        if(activity.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED){
+          ActivityCompat.requestPermissions(activity,new String[]{Manifest.permission.RECORD_AUDIO},101);
+        }
+      }
     }else if("startListening".equals(call.method)){
-      if(synthesizer != null){
-        synthesizer.stopSpeaking();
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        if(activity.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED){
+          Map<String,Object> data = new LinkedHashMap<>();
+          data.put("ret",false);
+          data.put("msg","App未获得录音权限");
+          data.put("code",-1);
+          result.success(data);
+        }else{
+          startListening(result);
+        }
+      }else{
+        startListening(result);
       }
-      if(recognizer == null){
-        initRecognizer();
-      }
-      recognizer.cancel();
-
-      recognizer.setParameter("audio_source","1");
-      recognizer.setParameter(SpeechConstant.RESULT_TYPE,"json");
-      recognizer.setParameter(SpeechConstant.ASR_AUDIO_PATH,"asr.pcm");
-
-      recognizer.startListening(this);
     }else if("stopListening".equals(call.method)){
       if(recognizer != null){
         recognizer.stopListening();
@@ -120,7 +271,7 @@ public class XfyunvoicePlugin implements MethodCallHandler,RecognizerListener,Sy
       if(synthesizer == null){
         initSynthesizer();
       }
-      synthesizer.startSpeaking(msg,this);
+      synthesizer.startSpeaking(msg,syListener);
     }else if("isSpeaking".equals(call.method)){
       if(synthesizer != null){
         result.success(synthesizer.isSpeaking());
@@ -142,97 +293,5 @@ public class XfyunvoicePlugin implements MethodCallHandler,RecognizerListener,Sy
     }else {
       result.notImplemented();
     }
-  }
-
-  @Override
-  public void onVolumeChanged(int i, byte[] bytes) {
-    if(channel != null){
-      Map<String,Integer> data = new HashMap<>();
-      data.put("volume",i);
-      channel.invokeMethod("onVolumeChanged",data);
-    }
-  }
-
-  @Override
-  public void onBeginOfSpeech() {
-    if(channel != null){
-      Map<String,Integer> data = new HashMap<>();
-      channel.invokeMethod("onBeginOfSpeech",data);
-    }
-  }
-
-  @Override
-  public void onEndOfSpeech() {
-    if(channel != null){
-      Map<String,String> data = new HashMap<>();
-      data.put("result",_result);
-      channel.invokeMethod("onEndOfSpeech",data);
-    }
-  }
-
-  @Override
-  public void onResult(RecognizerResult recognizerResult, boolean b) {
-    if(channel != null){
-      Map<String,Object> data = new HashMap<>();
-      data.put("result",_result);
-      data.put("isLast",b);
-      channel.invokeMethod("onResults",data);
-    }
-  }
-
-  @Override
-  public void onError(SpeechError speechError) {
-    if(channel != null){
-      Map<String,Object> data = new HashMap<>();
-      data.put("code",speechError.getErrorCode());
-      data.put("desc",speechError.getErrorDescription());
-      data.put("type",0);
-      channel.invokeMethod("onError",data);
-    }
-  }
-
-  @Override
-  public void onSpeakBegin() {
-    _result = "";
-    if(channel != null){
-      Map<String,Object> data = new HashMap<>();
-      channel.invokeMethod("onBeginOfSpeech",data);
-    }
-  }
-
-  @Override
-  public void onBufferProgress(int i, int i1, int i2, String s) {
-
-  }
-
-  @Override
-  public void onSpeakPaused() {
-
-  }
-
-  @Override
-  public void onSpeakResumed() {
-
-  }
-
-  @Override
-  public void onSpeakProgress(int i, int i1, int i2) {
-
-  }
-
-  @Override
-  public void onCompleted(SpeechError speechError) {
-    if(channel != null){
-      Map<String,Object> data = new HashMap();
-      data.put("code",speechError.getErrorCode());
-      data.put("desc",speechError.getErrorDescription());
-      data.put("type",0);
-      channel.invokeMethod("onCompleted",data);
-    }
-  }
-
-  @Override
-  public void onEvent(int i, int i1, int i2, Bundle bundle) {
-
   }
 }

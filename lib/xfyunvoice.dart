@@ -26,9 +26,12 @@ class XfyunVoice {
 
   /// 开始语音监听
   /// @return 成功返回true,失败返回false
-  static Future<bool> startListening() async {
-    final b = await _channel.invokeMethod('startListening');
-    return b;
+  static Future<dynamic> startListening() async {
+    return await _channel.invokeMethod('startListening');
+  }
+
+  static void requestPermission() async {
+    await _channel.invokeMethod('requestPermission');
   }
 
   /// @msg 传入参数 文字转语音传入的参数
