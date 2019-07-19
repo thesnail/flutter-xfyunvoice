@@ -240,7 +240,8 @@ public class XfyunvoicePlugin implements MethodCallHandler {
       }
     }else if("requestPermission".equals(call.method)){
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-        if(activity.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED){
+        int permission = activity.checkSelfPermission(Manifest.permission.RECORD_AUDIO);
+        if(permission != PackageManager.PERMISSION_GRANTED){
           ActivityCompat.requestPermissions(activity,new String[]{Manifest.permission.RECORD_AUDIO},101);
         }
       }
